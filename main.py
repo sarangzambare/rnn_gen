@@ -7,6 +7,11 @@ import numpy as np
 
 data = pd.read_csv('data/bucket_HY_before_standarize.csv')
 
+class CONFIG:
+    LOOK_WINDOW = 3
+    INPUT_SHAPE = (LOOK_WINDOW,2)
+    DATA_DIR = 'data/'
+
 
 def prepare_data(data):
     payments = data.Payment
@@ -26,19 +31,18 @@ def prepare_data(data):
     return out
 
 prep_data = prepare_data(data)
-prep_data = prep_data[:-1]  #getting the len to be divisible by 4
+prep_data = prep_data[:-1]  #getting the len to be divisible by 4 = (LOOK_WINDOW + 1)
 
-num_samples = int(len(prep_data)/4)
+num_samples = int(len(prep_data)/(CONFIG.LOOK_WINDOW+1))
 x_train = np.zeros((num_samples,3,2))
 y_train = np.zeros((num_samples,2))
 
 for i in range(num_samples):
     x_out = []
-    x_out.append(list(prep_data[4*i]))
-    x_out.append(list(prep_data[4*i + 1]))
-    x_out.append(list(prep_data[4*i + 2]))
+    for j in range(CONFIG.LOOK_WINDOW):
+        x_out.append(list(prep_data[4*i+j]))
     x_train[i] = np.asarray(x_out)
-    y_train[i] = np.asarray(list(prep_data[4*i + 3]))
+    y_train[i] = np.asarray(list(prep_data[4*i + CONFIG.LOOK_WINDOW]))
 
 
 
@@ -46,9 +50,7 @@ x_train = np.asarray(x_train,dtype=np.float32)
 y_train = np.asarray(y_train,dtype=np.float32)
 
 
-class CONFIG:
-    INPUT_SHAPE = (3,2)
-    DATA_DIR = 'data/'
+
 
 
 def custom_loss(model,x,y):
