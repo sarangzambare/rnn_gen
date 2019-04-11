@@ -75,7 +75,7 @@ def apply_gradients(optimizer,gradients,variables):
 def base_model(input_shape):
 
     x_input = Input(shape = input_shape)
-    x = LSTM(units=16,return_sequences = False)(x_input)
+    x = GRU(units=16,return_sequences = False)(x_input)
     x = Dropout(0.5)(x)
     x = BatchNormalization()(x)
     x = Dense(4,activation='relu')(x)
