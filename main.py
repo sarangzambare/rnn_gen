@@ -14,7 +14,7 @@ def prepare_data(data):
     out = np.zeros((len(payments),2))
 
     for i in range(len(payments)):
-        valid = [payments[i],1]
+        valid = [payments[i]/1e5,1]
         non_valid = [0,0]
 
         if(nulls[i]):
@@ -24,6 +24,24 @@ def prepare_data(data):
 
 
     return out
+
+prep_data = prepare_data(data)
+prep_data = prep_data[:-1]  #getting the len to be divisible by 4
+
+num_samples = int(len(prep_data)/4)
+x_train = np.zeros((num_samples,3,2))
+y_train = np.zeros((num_samples,2))
+
+for i in range(num_samples):
+    x_out = []
+    x_out.append(list(prep_data[4*i]))
+    x_out.append(list(prep_data[4*i + 1]))
+    x_out.append(list(prep_data[4*i + 2]))
+    x_train[i] = np.asarray(x_out)
+    y_train[i] = np.asarray(list(prep_data[4*i + 3]))
+
+
+
 
 class CONFIG:
     INPUT_SHAPE = (3,2)
