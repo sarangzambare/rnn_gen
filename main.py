@@ -1,6 +1,6 @@
 import tensorflow as tf
 import pandas as pd
-from tensorflow.keras.layers import Activation, GRU, Input, Dropout, BatchNormalization, Dense, concatenate
+from tensorflow.keras.layers import Activation, GRU, Input, Dropout, BatchNormalization, Dense, concatenate, LSTM
 import tensorflow.keras as keras
 import numpy as np
 
@@ -42,18 +42,40 @@ for i in range(num_samples):
 
 
 
+x_train = np.asarray(x_train,dtype=np.float32)
+y_train = np.asarray(y_train,dtype=np.float32)
+
 
 class CONFIG:
     INPUT_SHAPE = (3,2)
     DATA_DIR = 'data/'
 
 
+def custom_loss(model,x,y):
+    #assert(model.output.shape == OUTPUT_SHAPE)
+
+    y_pred = model(x)
+
+    loss = tf.reduce_mean(tf.math.square(y[0] - y_pred[0]) + tf.math.square(y[1]-y_pred[1]))
+    print("loss is :" + str(loss))
+    return loss
+
+
+def compute_gradients(model,x,y):
+    with tf.GradientTape() as tape:
+        loss = custom_loss(model,x,y)
+        gradients = tape.gradient(loss,model.trainable_variables)
+
+    return gradients, loss
+
+def apply_gradients(optimizer,gradients,variables):
+    optimizer.apply_gradients(zip(gradients,variables))
 
 
 def base_model(input_shape):
 
     x_input = Input(shape = input_shape)
-    x = GRU(units=16,return_sequences = False)(x_input)
+    x = LSTM(units=16,return_sequences = False)(x_input)
     x = Dropout(0.5)(x)
     x = BatchNormalization()(x)
     x = Dense(4,activation='relu')(x)
@@ -70,4 +92,13 @@ def base_model(input_shape):
 
 model = base_model(CONFIG.INPUT_SHAPE)
 
-model.summary()
+#model.summary()
+
+
+epochs = 1000
+learning_rate = 1e-4
+optimizer = tf.keras.optimizers.Adam(learning_rate)
+
+for i in range(1, epochs+1):
+    gradients, loss = compute_gradients(model,x_train,y_train)
+    apply_gradients(optimizer,gradients,model.trainable_variables)
