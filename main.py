@@ -50,17 +50,26 @@ x_train = np.asarray(x_train,dtype=np.float32)
 y_train = np.asarray(y_train,dtype=np.float32)
 
 
+def CrossEntropy(yHat, y):
+    loss = 0
+    for pred,act in zip(yHat,y):
+        if act == 1:
+          loss += -tf.math.log(pred)
+        else:
+          loss += -tf.math.log(1 - pred)
 
+    return loss/len(y)
 
 
 def custom_loss(model,x,y):
     #assert(model.output.shape == OUTPUT_SHAPE)
 
     y_pred = model(x)
-
-    loss = tf.reduce_mean(tf.math.square(y[0] - y_pred[0]) + tf.math.square(y[1]-y_pred[1]))
-    print("loss is :" + str(loss))
-    return loss
+    nan_loss = CrossEntropy(y_pred[:,1],y[:,1])
+    payments_loss = tf.reduce_mean(tf.math.square(y[:,0] - y_pred[:,0]))
+    final_loss = nan_loss + payments_loss
+    print("nan_loss is :" + str(nan_loss) + 'payments_loss is: ' + str(payments_loss))
+    return final_loss
 
 
 def compute_gradients(model,x,y):
@@ -98,9 +107,15 @@ model = base_model(CONFIG.INPUT_SHAPE)
 
 
 epochs = 1000
-learning_rate = 1e-4
+learning_rate = 1e-2
 optimizer = tf.keras.optimizers.Adam(learning_rate)
 
 for i in range(1, epochs+1):
-    gradients, loss = compute_gradients(model,x_train,y_train)
+    gradients, loss = compute_gradients(model,x_train[:200],y_train[:200])
     apply_gradients(optimizer,gradients,model.trainable_variables)
+
+
+
+y_preds = model(x_train[200:])
+
+y_preds[:30]
