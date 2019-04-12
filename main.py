@@ -3,6 +3,8 @@ import pandas as pd
 from tensorflow.keras.layers import Activation, GRU, Input, Dropout, BatchNormalization, Dense, concatenate, LSTM
 import tensorflow.keras as keras
 import numpy as np
+from tqdm import tqdm
+import time
 
 
 data = pd.read_csv('data/bucket_HY_before_standarize.csv')
@@ -68,7 +70,7 @@ def custom_loss(model,x,y):
     nan_loss = CrossEntropy(y_pred[:,1],y[:,1])
     payments_loss = tf.reduce_mean(tf.math.square(y[:,0] - y_pred[:,0]))
     final_loss = nan_loss + payments_loss
-    print("nan_loss is :" + str(nan_loss) + 'payments_loss is: ' + str(payments_loss))
+    #print("nan_loss is :" + str(nan_loss) + 'payments_loss is: ' + str(payments_loss))
     return final_loss
 
 
@@ -86,10 +88,13 @@ def apply_gradients(optimizer,gradients,variables):
 def base_model(input_shape):
 
     x_input = Input(shape = input_shape)
-    x = GRU(units=16,return_sequences = False)(x_input)
+    x = GRU(units=64,return_sequences = False)(x_input)
     x = Dropout(0.5)(x)
     x = BatchNormalization()(x)
-    x = Dense(4,activation='relu')(x)
+    x = GRU(units=32,return_sequences = False)(x_input)
+    x = Dropout(0.5)(x)
+    x = BatchNormalization()(x)
+    x = Dense(8,activation='relu')(x)
     y_payment = Dense(1,activation=None)(x)
     y_prob = Dense(1,activation='sigmoid')(x)
 
@@ -110,12 +115,43 @@ epochs = 1000
 learning_rate = 1e-2
 optimizer = tf.keras.optimizers.Adam(learning_rate)
 
-for i in range(1, epochs+1):
+for i in tqdm(range(1, epochs+1)):
     gradients, loss = compute_gradients(model,x_train[:200],y_train[:200])
     apply_gradients(optimizer,gradients,model.trainable_variables)
 
 
 
-y_preds = model(x_train[200:])
+model.save('1000epochs.h5')
 
-y_preds[:30]
+x_test = x_train[200:]
+y_preds_test = model(x_test)
+y_preds_test = np.asarray(y_preds_test)
+y_test = y_train[200:]
+
+for i in range(len(y_preds_test)):
+    if(y_preds_test[i,1] < 0.5):
+        y_preds_test[i,:] = [0,0]
+
+y_preds_test[:30]
+
+y_test[:30]
+
+def generator(model,seed_data,count):
+
+    # seed_data.shape = (1,3,2)
+    input = seed_data
+    pred = model(input)
+    i = 0
+    while(i < count):
+        temp = input
+        input[0,0,:] = temp[0,1,:]
+        input[0,1,:] = temp[0,2,:]
+        input[0,2,:] = pred[0]
+        pred = model(input)
+        print('pred is: ' + str(pred))
+        i += 1
+        time.sleep(0.5)
+
+
+
+generator(model,np.expand_dims(x_train[0],0),10)
